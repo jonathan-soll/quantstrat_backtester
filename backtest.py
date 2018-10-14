@@ -10,15 +10,18 @@ except ImportError:
     import queue
 
 import time
+from backtest_base import Backtest_Base
 
-class Backtest(object):
+class Backtest(Backtest_Base):
     '''
     Encapsulates the settings and components for carrying out an event-driven backtest
     '''
 
     def __init__(
-        self, csv_dir, symbol_list, initial_capital, heartbeat, start_date, data_handler, execution_handler, portfolio, strategy,
-        external_data_dir, strategy_title
+        self, csv_dir, symbol_list, initial_capital,
+        heartbeat, start_date, data_handler,
+        execution_handler, portfolio, strategy,
+        strategy_title, external_data_dir
     ):
         '''
         Initializes the backtest with the path to the historical data, the list of symbols to be traded, the initial capital,
@@ -39,30 +42,12 @@ class Backtest(object):
         strategy - (Class) Generates signals based on market data.
         external_data_dir - A path to a csv file containing external data for the strategy
         '''
-
-        self.csv_dir = csv_dir
-        self.symbol_list = symbol_list
-        self.initial_capital = initial_capital
-        self.heartbeat = heartbeat
-        self.start_date = start_date
         self.external_data_dir = external_data_dir
-        self.strategy_title = strategy_title
+        Backtest_Base.__init__(self, csv_dir, symbol_list, initial_capital,
+                                heartbeat, start_date, data_handler,
+                                execution_handler, portfolio, strategy,
+                                strategy_title)
 
-        # we are actually passing in the class names of the handlers we want
-        self.data_handler_cls = data_handler
-        self.execution_handler_cls = execution_handler
-        self.portfolio_cls = portfolio
-        self.strategy_cls = strategy
-
-        self.events = queue.Queue()
-
-        self.signals = 0
-        self.orders = 0            # combine the index to pad forward values
-
-        self.fills = 0
-        self.num_strats = 1
-
-        self._generate_trading_instances()
 
     def _generate_trading_instances(self):
         '''
@@ -76,74 +61,3 @@ class Backtest(object):
         self.strategy = self.strategy_cls(self.data_handler, self.events, self.external_data_dir)
         self.portfolio = self.portfolio_cls(self.data_handler, self.events, self.start_date, self.initial_capital)
         self.execution_handler = self.execution_handler_cls(self.events)
-
-    def _run_backtest(self):
-        '''
-        Executes the backtest
-
-        For a...
-            MarketEvent:  Strategy Object calculates new signals, Portfolio Object reindexes the time
-            Signalevent:  Portfolio Object handles the signal and converts it to OrderEvents
-            OrderEvent:   ExecutionHandler is sent the order and sends it to the broker
-            FillEvent:    Portfolio updates according to the new positions
-        '''
-        i = 0
-        while True:
-            i += 1
-            # print(i)
-            # Update the market bars
-            if self.data_handler.continue_backtest == True:
-                self.data_handler.update_bars()
-            else:
-                break
-
-            # Handle the events
-            while True:
-                try:
-                    event = self.events.get(False)
-                except queue.Empty:
-                    break
-                else:
-                    if event is not None:
-                        if event.type == 'MARKET':
-                            self.strategy.calculate_signals(event)
-                            self.portfolio.update_timeindex(event)
-
-                        elif event.type == 'SIGNAL':
-                            self.signals += 1
-                            self.portfolio.update_signal(event)
-
-                        elif event.type == 'ORDER':
-                            self.orders += 1
-                            self.execution_handler.execute_order(event)
-
-                        elif event.type == 'FILL':
-                            self.fills += 1
-                            self.portfolio.update_fill(event)
-
-            time.sleep(self.heartbeat)
-
-    def _output_performance(self):
-        '''
-        Outputs the strategy performance from the backtest.
-        '''
-        self.portfolio.create_equity_curve_dataframe()
-
-        print('Creating summary stats...')
-        stats = self.portfolio.output_summary_stats(self.strategy_title)
-
-        print('Creating equity curve...')
-        print(self.portfolio.equity_curve.head(10))
-        pprint.pprint(stats)
-
-        print('Signals: %s' % self.signals)
-        print('Orders: %s' % self.orders)
-        print('Fills: %s' % self.fills)
-
-
-    def simulate_trading(self):
-        '''
-        Runs the backtest and outputs performance
-        '''
-        self._run_backtest()
-        self._output_performance()

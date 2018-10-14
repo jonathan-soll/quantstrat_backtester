@@ -66,10 +66,64 @@ class DataHandler(object):
         '''
         raise NotImplementedError('Should implement update_bars()')
 
+class SimFinSQLDataHandler(DataHandler):
+    """
+    This DataHandler subclass is designed to read data for each requested symbol from a SQL database
+    and provide an interfrance to obtain the 'latest' bar in a simulation of a live trading interface
+    """
+
+    def __init__(self, events, sqlconnection, symbol_list=None):
+        """
+        Initializes the DataHandler by passing in a pyodbc connection object and a
+        list of symbols to track.
+        """
+
+        self.events = events
+        self.conn = sqlconnection
+        self.symbol_list = symbol_list
+
+        self.symbol_data = {}           # dict where key = symbol and value = pandas row iterable
+        self.latest_symbol_data = {}
+        self.continue_backtest = True
+
+        self._open_convert_pricedata()
+
+    def _open_convert_pricedata(self):
+        '''
+        Fetches the data for each symbol from the database using the pyodbc cursor,
+        converting them into pandas row iterables within a symbol dictionary.
+        '''
+
+        query_str = """
+            SELECT
+                [Date] = dp.date
+                , [Adj_Close] = dp.closeAdj
+            FROM SimFin.daily_price dp (nolock)
+            JOIN SimFin.general_company_data gcd (nolock) ON dp.simId = gcd.simId
+            WHERE
+                ticker = '%s'
+        """
+
+        comb_index = None
+        for s in symbol_list: # for each and every symbol we care about
+            symbol_data[s] = pd.read_sql(sql=query_str % s, con=conn, index_col='Date')
+
+            # combine the index to pad forward values
+            if comb_index is None: # if it's the first symbol, set the index to the dates of the first symbol
+                comb_index = symbol_data[s].index
+            else: # if it's not the first symbol, combine the dates of all of the symbols
+                comb_index = comb_index.union(symbol_data[s].index)
+
+            # set the latest symbol data to None
+            self.latest_symbol_data[s] = []
+
+        # Reindex the dataframes
+        for s in self.symbol_list:
+            self.symbol_data[s] = self.symbol_data[s].reindex(index=comb_index, method = 'pad').iterrows()
 
 class HistoricCSVDataHandler(DataHandler):
     '''
-    This DataHandler subclass is designed to reach CSV files for each requested symbol from the disk and
+    This DataHandler subclass is designed to read CSV files for each requested symbol from the disk and
     provide an interface to obtain the 'latest' bar in a simulation of a live trading interface
     '''
 
@@ -94,6 +148,7 @@ class HistoricCSVDataHandler(DataHandler):
         self.continue_backtest = True
 
         self._open_convert_csv_files()
+
 
     def _open_convert_csv_files(self):
         '''
@@ -275,7 +330,7 @@ class AlphaVantage_HistoricCSVDataHandler(DataHandler):
         comb_index = None
         for s in self.symbol_list: # for each and every symbol we care about
             # load the csv file with no head information, indexed on the date
-            
+
             self.symbol_data[s] = pd.io.parsers.read_csv(
                 os.path.join(self.csv_dir, '%s.csv' % s),
                 header = 0, index_col = 0, parse_dates = True,

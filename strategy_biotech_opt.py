@@ -138,7 +138,7 @@ if __name__ == '__main__':
         execution_handler = SimulatedExecutionHandler,
         portfolio = Portfolio,
         strategy = BiotechApprovalStrategy,
-        external_data_dir = approvals_csv_dir,
-        strategy_title = 'Biotech Approval Basic Strategy:  Go long at close of day following approval, sell 6 months later.'
+        strategy_title = 'Biotech Approval Basic Strategy:  Go long at close of day following approval, sell 6 months later.',
+        external_data_dir = approvals_csv_dir
     )
     backtest.simulate_trading()
