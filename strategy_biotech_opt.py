@@ -11,7 +11,7 @@ import pandas as pd
 
 from strategy import Strategy
 from event import SignalEvent
-from backtest import Backtest
+from backtest_ext import Backtest_Ext
 from data import HistoricCSVDataHandler, AlphaVantage_HistoricCSVDataHandler
 from execution import SimulatedExecutionHandler
 from portfolio import Portfolio
@@ -128,8 +128,7 @@ if __name__ == '__main__':
     heartbeat = 0.0
     start_date = datetime.datetime(2017, 1, 1, 0, 0, 0)
 
-    backtest = Backtest(
-        csv_dir = csv_dir,
+    backtest = Backtest_Ext(
         symbol_list = symbol_list,
         initial_capital = initial_capital,
         heartbeat = heartbeat,
@@ -139,6 +138,7 @@ if __name__ == '__main__':
         portfolio = Portfolio,
         strategy = BiotechApprovalStrategy,
         strategy_title = 'Biotech Approval Basic Strategy:  Go long at close of day following approval, sell 6 months later.',
+        csv_dir = csv_dir,
         external_data_dir = approvals_csv_dir
     )
     backtest.simulate_trading()
