@@ -8,7 +8,6 @@ from dateutil.relativedelta import relativedelta
 
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 
 from strategy import Strategy
 from event import SignalEvent
@@ -77,7 +76,6 @@ class BiotechApprovalStrategy(Strategy):
         Parameters:
         event - a MarketEvent object
         '''
-        # print(bar_date)
         if event.type == 'MARKET':
             for s in self.symbol_list:
                 bar = self.bars.get_latest_bar_value(s, 'Adj_Close')
@@ -117,8 +115,10 @@ class BiotechApprovalStrategy(Strategy):
 
 
 if __name__ == '__main__':
-    csv_dir = r'C:\Users\jonat\Documents\Projects\Quantstrat\First_Backtester\Data\\' # r'C:\Users\jonat\Documents\Projects\Quantstrat\ATVI.csv'
-    approvals_csv_dir = r'C:\Users\jonat\Documents\Projects\Quantstrat\First_Backtester\Data\Biotech_Approvals_1Week.csv'
+    # csv_dir = r'C:\Users\jonat\Documents\Projects\Quantstrat\First_Backtester\Data\\' # r'C:\Users\jonat\Documents\Projects\Quantstrat\ATVI.csv'
+    csv_dir = r'/home/jonathansoll/Documents/Projects/quantstrat_backtester/Data/'
+    # approvals_csv_dir = r'C:\Users\jonat\Documents\Projects\Quantstrat\First_Backtester\Data\Biotech_Approvals_1Week.csv'
+    approvals_csv_dir = r'/home/jonathansoll/Documents/Projects/quantstrat_backtester/Data/Biotech_Approvals_1Week.csv'
 
     symbol_list = ['ADMP', 'AEZS', 'AGEN', 'AGN', 'DRRX', 'EXEL', 'NVO', 'NVS',
                     'OPK', 'VRTX', 'ABBV', 'ENTA', 'AGIO', 'ADMS', 'XENT'

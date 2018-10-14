@@ -57,7 +57,8 @@ class Backtest(object):
         self.events = queue.Queue()
 
         self.signals = 0
-        self.orders = 0
+        self.orders = 0            # combine the index to pad forward values
+
         self.fills = 0
         self.num_strats = 1
 
@@ -139,8 +140,6 @@ class Backtest(object):
         print('Orders: %s' % self.orders)
         print('Fills: %s' % self.fills)
 
-        # print('Printing chart...')
-        # self.portfolio.print_chart()
 
     def simulate_trading(self):
         '''
